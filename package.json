@@ -106,6 +106,11 @@
                     "type": "number",
                     "default": 91,
                     "description": "The number of buckets to display in the stats view. The bigger the value you set, the higher resolution the chart will be."
+                },
+                "githd.repositoryMapping": {
+                    "type": "object",
+                    "default": {},
+                    "description": "Map of repository names to their paths for quick selection. Example: {\"my-repo\": \"/path/to/repo\", \"another-repo\": \"/path/to/another/repo\"}"
                 }
             }
         },

@@ -67,6 +67,10 @@ interface RepoPickItem extends vs.QuickPickItem {
   repo: GitRepo;
 }
 
+interface ConfigRepoPickItem extends vs.QuickPickItem {
+  repoPath: string;
+}
+
 class EnterShaPickItem implements vs.QuickPickItem {
   label = 'Enter commit SHA';
   description = '';
@@ -88,6 +92,56 @@ async function selectGitRepo(gitService: GitService): Promise<GitRepo | undefine
     placeHolder: 'Select the git repo'
   });
   return item?.repo;
+}
+
+async function selectGitRepoFromConfiguration(gitService: GitService): Promise<GitRepo | undefined> {
+  const config = vs.workspace.getConfiguration('githd');
+  const repositoryMapping: {[key: string]: string} = config.get('repositoryMapping') || {};
+  
+  const repoNames = Object.keys(repositoryMapping);
+  if (repoNames.length === 0) {
+    // 如果没有配置映射，则使用默认的选择方式
+    return selectGitRepo(gitService);
+  }
+  
+  // 检查配置中的仓库是否在当前扫描到的仓库中
+  const repos = gitService.getGitRepos();
+  const configuredRepos = repoNames
+    .map(name => {
+      const repoPath = repositoryMapping[name];
+      const repo = repos.find(r => r.root === repoPath);
+      return repo ? { name, repo } : null;
+    })
+    .filter(item => item !== null) as { name: string; repo: GitRepo }[];
+  
+  if (configuredRepos.length === 0) {
+    // 如果配置中的仓库都不在当前扫描到的仓库中，使用默认选择方式
+    return selectGitRepo(gitService);
+  }
+  
+  if (configuredRepos.length === 1) {
+    // 如果只有一个有效配置项，直接使用
+    return configuredRepos[0].repo;
+  }
+  
+  // 多个配置项，让用户选择
+  const pickItems: ConfigRepoPickItem[] = configuredRepos.map(item => {
+    return { 
+      label: item.name, 
+      description: item.repo.root,
+      repoPath: item.repo.root
+    };
+  });
+  
+  const item = await vs.window.showQuickPick(pickItems, {
+    placeHolder: 'Select the git repo from configuration'
+  });
+  
+  if (item) {
+    return repos.find(repo => repo.root === item.repoPath);
+  }
+  
+  return undefined;
 }
 
 async function getRefFromQuickPickItem(
@@ -147,7 +201,7 @@ export class CommandCenter {
   @command('githd.viewHistory')
   async viewHistory(): Promise<void> {
     Tracer.verbose('Command: githd.viewHistory');
-    const repo = await this._getOrUpdateRepo();
+    const repo = await this._getOrUpdateRepo(true);
     if (repo) {
       this._viewHistory({ repo, branch: '' });
     }
@@ -500,9 +554,11 @@ export class CommandCenter {
     });
   }
 
-  private async _getOrUpdateRepo(): Promise<GitRepo | undefined> {
+  private async _getOrUpdateRepo(useConfig?: boolean): Promise<GitRepo | undefined> {
     if (!this._gitService.currentGitRepo) {
-      const repo: GitRepo | undefined = await selectGitRepo(this._gitService);
+      const repo: GitRepo | undefined = useConfig 
+        ? await selectGitRepoFromConfiguration(this._gitService)
+        : await selectGitRepo(this._gitService);
       if (!repo) {
         return;
       }

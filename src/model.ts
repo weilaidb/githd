@@ -15,6 +15,7 @@ export interface Configuration {
   withFolder: boolean;
   readonly cacheEnabled: boolean;
   readonly dataBucketsCount: number;
+  readonly repositoryMapping: { [key: string]: string };
 }
 
 export interface FilesViewContext {
@@ -47,7 +48,8 @@ function getConfiguration(): Configuration {
     disabledInEditor: <boolean>vs.workspace.getConfiguration('githd.editor').get('disabled'),
     traceLevel: <string>vs.workspace.getConfiguration('githd').get('traceLevel'),
     cacheEnabled: <boolean>vs.workspace.getConfiguration('githd').get('cacheEnabled'),
-    dataBucketsCount: <number>vs.workspace.getConfiguration('githd.statsView').get('dataBucketsCount')
+    dataBucketsCount: <number>vs.workspace.getConfiguration('githd.statsView').get('dataBucketsCount'),
+    repositoryMapping: <{[key: string]: string}>vs.workspace.getConfiguration('githd').get('repositoryMapping')
   };
 }
 
