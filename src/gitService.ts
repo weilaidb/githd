@@ -617,7 +617,7 @@ export class GitService {
           return 1;
         }
         if (includeSubFolders && child.isDirectory()) {
-          return await this._scanFolder(path.join(folder, child.name));
+          return await this._scanFolder(path.join(folder, child.name), true);
         }
         return 0;
       });
