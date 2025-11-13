@@ -211,19 +211,12 @@ export class GitService {
     branch: string,
     author?: string,
     startTime?: Date,
-    endTime?: Date,
-    hideMerges?: boolean
+    endTime?: Date
   ): Promise<number> {
     if (!repo) {
       return 0;
     }
-    let args: string[] = ['rev-list'];
-    if (hideMerges) {
-      args.push('--no-merges');
-    } else {
-      args.push('--simplify-merges');
-    }
-    args.push('--count', branch);
+    let args: string[] = ['rev-list', '--simplify-merges', '--count', branch];
     if (author) {
       args.push(`--author=${author}`);
     }
@@ -337,13 +330,12 @@ export class GitService {
     line?: number,
     author?: string,
     startTime?: Date,
-    endTime?: Date,
-    hideMerges?: boolean
+    endTime?: Date
   ): Promise<GitLogEntry[]> {
     Tracer.info(
       `Get entries. repo: ${repo.root}, express: ${express}, start: ${start}, count: ${count}, branch: ${branch}, ` +
         `isStash: ${isStash}, file: ${file?.fsPath}, line: ${line}, author: ${author}, ` +
-        `startTime: ${startTime?.toISOString()}, endTime: ${endTime?.toISOString()}, hideMerges: ${hideMerges}`
+        `startTime: ${startTime?.toISOString()}, endTime: ${endTime?.toISOString()}`
     );
     if (!repo) {
       return [];
@@ -374,13 +366,7 @@ export class GitService {
     if (isStash) {
       args.unshift('stash', 'list');
     } else {
-      args.unshift('log', `--skip=${start}`, `--max-count=${count}`, '--date-order');
-      if (hideMerges) {
-        args.push('--no-merges');
-      } else {
-        args.push('--simplify-merges');
-      }
-      args.push(branch);
+      args.unshift('log', `--skip=${start}`, `--max-count=${count}`, '--date-order', '--simplify-merges', branch);
       if (author) {
         args.push(`--author=${author}`);
       }
@@ -609,20 +595,15 @@ export class GitService {
     return total;
   }
 
-  async getCommits(repo: GitRepo, branch?: string, hideMerges?: boolean): Promise<string[]> {
+  async getCommits(repo: GitRepo, branch?: string): Promise<string[]> {
     if (!branch) {
       return [];
     }
 
-    const args: string[] = ['log', '--format=%h'];
-    if (hideMerges) {
-      args.push('--no-merges');
-    } else {
-      args.push('--simplify-merges');
-    }
-    args.push('--date-order', branch, '--');
-    
-    const result: string = await this._exec(args, repo.root);
+    const result: string = await this._exec(
+      ['log', '--format=%h', '--simplify-merges', '--date-order', branch, '--'],
+      repo.root
+    );
     return result.split(/\r?\n/g);
   }
 

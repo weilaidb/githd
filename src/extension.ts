@@ -13,9 +13,9 @@ import { initializeIcons } from './icons';
 
 export function activate(context: vs.ExtensionContext) {
   initializeIcons(context);
-  const gitService = new GitService(context);
-  const model = new Model(context, gitService);
-  const dataloader = new Dataloader(context, gitService, model);
+  let gitService = new GitService(context);
+  let dataloader = new Dataloader(context, gitService);
+  let model = new Model(context, dataloader);
   let panelView = new PanelViewProvider(context, model);
   let historyViewProvider = new HistoryViewProvider(context, model, dataloader, gitService, panelView);
   let explorerViewProvider = new ExplorerViewProvider(context, model, dataloader, gitService);
