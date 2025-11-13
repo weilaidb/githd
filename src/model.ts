@@ -15,6 +15,7 @@ export interface Configuration {
   withFolder: boolean;
   readonly cacheEnabled: boolean;
   readonly dataBucketsCount: number;
+  readonly hideMerges: boolean;
   readonly repositoryMapping: { [key: string]: string };
 }
 
@@ -49,6 +50,7 @@ function getConfiguration(): Configuration {
     traceLevel: <string>vs.workspace.getConfiguration('githd').get('traceLevel'),
     cacheEnabled: <boolean>vs.workspace.getConfiguration('githd').get('cacheEnabled'),
     dataBucketsCount: <number>vs.workspace.getConfiguration('githd.statsView').get('dataBucketsCount'),
+    hideMerges: <boolean>vs.workspace.getConfiguration('githd.logView').get('hideMerges'),
     repositoryMapping: <{[key: string]: string}>vs.workspace.getConfiguration('githd').get('repositoryMapping')
   };
 }

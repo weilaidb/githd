@@ -6,6 +6,7 @@ import { GitLogEntry, GitRepo, GitService } from './gitService';
 import { Tracer } from './tracer';
 import { LRUCache } from 'lru-cache';
 import { debounce } from './utils';
+import { Model } from './model';
 
 class Cache {
   // cached log entries count
@@ -55,7 +56,8 @@ export class Dataloader {
 
   constructor(
     ctx: vs.ExtensionContext,
-    private _gitService: GitService
+    private _gitService: GitService,
+    private _model: Model
   ) {
     this._debouncedUpdate = debounce((repo: GitRepo) => this._updateCaches(repo), 1000);
     this._gitService.onDidChangeCurrentGitRepo(repo => this._updateRepo(repo), null, ctx.subscriptions);
@@ -123,7 +125,8 @@ export class Dataloader {
       line,
       author,
       startTime,
-      endTime
+      endTime,
+      this._model.configuration.hideMerges
     );
 
     // Only update cache when loading the first page
@@ -176,7 +179,15 @@ export class Dataloader {
       return count;
     }
 
-    const result = await this._gitService.getCommitsCount(repo, branch, author, startTime, endTime);
+    const result = await this._gitService.getCommitsCount(
+      repo,
+      branch,
+      author,
+      startTime,
+      endTime,
+      this._model.configuration.hideMerges
+    );
+
     this._cache.counts.set(key, result);
     return result;
   }
@@ -194,7 +205,9 @@ export class Dataloader {
       return '';
     }
 
-    const commits: string[] = this._useCache(repo.root) ? this._cache.commits : await this._gitService.getCommits(repo);
+    const commits: string[] = this._useCache(repo.root) 
+      ? this._cache.commits 
+      : await this._gitService.getCommits(repo, undefined, this._model.configuration.hideMerges);
     const index: number = commits.indexOf(ref);
     return index > 0 ? commits[index - 1] : '';
   }
@@ -204,7 +217,9 @@ export class Dataloader {
       return '';
     }
 
-    const commits: string[] = this._useCache(repo.root) ? this._cache.commits : await this._gitService.getCommits(repo);
+    const commits: string[] = this._useCache(repo.root) 
+      ? this._cache.commits 
+      : await this._gitService.getCommits(repo, undefined, this._model.configuration.hideMerges);
     const index: number = commits.indexOf(ref);
     return index >= 0 && index + 1 < commits.length ? commits[index + 1] : '';
   }
@@ -215,7 +230,9 @@ export class Dataloader {
       return [false, false];
     }
 
-    const commits: string[] = this._useCache(repo.root) ? this._cache.commits : await this._gitService.getCommits(repo);
+    const commits: string[] = this._useCache(repo.root) 
+      ? this._cache.commits 
+      : await this._gitService.getCommits(repo, undefined, this._model.configuration.hideMerges);
     const index: number = commits.indexOf(ref);
     return [index >= 0 && index + 1 < commits.length, index > 0];
   }
@@ -276,9 +293,9 @@ export class Dataloader {
 
     const branch = (await this._gitService.getCurrentBranch(repo)) ?? '';
     const [commits, count, logs] = await Promise.all([
-      this._gitService.getCommits(repo, branch),
-      this._gitService.getCommitsCount(repo, branch),
-      this._gitService.getLogEntries(repo, false, 0, Cache.logEntriesCount, branch)
+      this._gitService.getCommits(repo, branch, this._model.configuration.hideMerges),
+      this._gitService.getCommitsCount(repo, branch, undefined, undefined, undefined, this._model.configuration.hideMerges),
+      this._gitService.getLogEntries(repo, false, 0, Cache.logEntriesCount, branch, undefined, undefined, undefined, undefined, undefined, undefined, this._model.configuration.hideMerges)
     ]);
 
     if (this._repo?.root !== repo.root) {
